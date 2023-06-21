@@ -1,8 +1,8 @@
 const noop = () => {}
-const { getScreen, adjustWindowSize: setWinSize, desktopCapturer, moveMouse, keyToggle = noop, mouseClick = noop } =
+const { getScreen, adjustWindowSize: setWinSize, moveMouse, keyToggle = noop, mouseClick = noop, getDesktopCapturer, getscreencache} =
   window.electron || {}
 
-const isElectron = !!window.electron
+const isElectron = true
 
 async function getScreenSize() {
   return isElectron ? getScreen() : { width: window.screen.width, height: window.screen.height }
@@ -15,28 +15,38 @@ async function adjustWindowSize(width, height) {
 }
 
 async function getScreenStream() {
-  // 这段代码是测试用的，如果不是electron环境则使用摄像头
+  console.log('isElectron', isElectron)
+  // getDesktopCapturer()
+  // 这段代码是测试用的，如果不是electron环境则使用摄像头 
   if (!isElectron) return navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+
   // 否则使用桌面流
-  const sources = await desktopCapturer.getSources({ types: ['screen'] })
+  let sourceId = getscreencache()
+  console.log('sourceId', sourceId)
+  console.log('window.screen', window.screen)
+
+  
   return new Promise((resolve, reject) => {
-    navigator.webkitGetUserMedia(
-      {
-        audio: false,
-        video: {
-          mandatory: {
-            chromeMediaSource: 'desktop',
-            chromeMediaSourceId: sources[0].id,
-            maxWidth: window.screen.width,
-            maxHeight: window.screen.height,
-          },
-        },
-      },
-      (stream) => {
-        resolve(stream)
-      },
-      reject
-    )
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: sourceId,
+          maxWidth: window.screen.width,
+          maxHeight: window.screen.height,
+        }
+      }
+    })
+    .then((stream) => {
+      resolve(stream)
+    })
+    .catch((error) => {
+      console.error(error)
+      reject(error)
+    })
+
+
   })
 }
 
